@@ -16,7 +16,8 @@ document.getElementById('year').textContent=new Date().getFullYear();
 const projectFilters=[...document.querySelectorAll('[data-filter]')];
 projectFilters.forEach(button=>button.addEventListener('click',()=>{const category=button.dataset.filter;projectFilters.forEach(filter=>filter.setAttribute('aria-pressed',String(filter===button)));let shown=0;document.querySelectorAll('.gallery-card[data-category]').forEach(card=>{const visible=category==='all'||card.dataset.category===category;card.hidden=!visible;if(visible)shown++;});document.getElementById('portfolio-empty').hidden=shown>0;}));
 // These are local action counts, not unique visitors or confirmed app activity.
-const activityKey='portfolio-project-activity-v1';
+const activityKey='portfolio-project-activity-v2';
+const activityCooldown=24*60*60*1000;
 const trackedProjects=[
  {id:'beach-club',card:document.querySelector('a.gallery-card[data-category="web"]'),action:'uses'},
  {id:'sound-diary',card:document.querySelector('a.gallery-card[data-category="app"]'),action:'downloads'},
@@ -34,6 +35,8 @@ function readActivity(){
    ['interactions','downloads','uses'].forEach(metric=>{
     const value=saved?.[id]?.[metric];
     clean[id][metric]=Number.isSafeInteger(value)&&value>=0?value:0;
+    const last=saved?.[id]?.[metric+'At'];
+    clean[id][metric+'At']=Number.isSafeInteger(last)&&last>=0?last:0;
    });
   });
   return clean;
@@ -62,8 +65,15 @@ trackedProjects.forEach(({id,card,action})=>{
   if(event.type==='auxclick'&&event.button!==1)return;
   const saved=readActivity();
   const current=saved[id]||projectActivity[id]||{interactions:0,downloads:0,uses:0};
-  current.interactions=Math.min(Number.MAX_SAFE_INTEGER,current.interactions+1);
-  if(card.matches('a')||event.target.closest('.evaluation-live'))current[action]=Math.min(Number.MAX_SAFE_INTEGER,current[action]+1);
+  const now=Date.now();
+  const countOnce=metric=>{
+   const last=current[metric+'At'];
+   if(last&&now-last<activityCooldown)return;
+   current[metric]=Math.min(Number.MAX_SAFE_INTEGER,current[metric]+1);
+   current[metric+'At']=now;
+  };
+  countOnce('interactions');
+  if(card.matches('a')||event.target.closest('.evaluation-live'))countOnce(action);
   projectActivity={...projectActivity,...saved,[id]:current};
   try{localStorage.setItem(activityKey,JSON.stringify(projectActivity));}catch{}
   renderActivity();
@@ -77,7 +87,7 @@ window.addEventListener('storage',event=>{
 });
 const activityNote=document.createElement('p');
 activityNote.className='activity-note';
-activityNote.textContent='Activity in this browser · Uses count live-project opens. Downloads count clicks.';
+activityNote.textContent='Activity in this browser · Each action counts once per 24 hours. Uses count project opens; downloads count clicks.';
 document.querySelector('.portfolio-gallery').after(activityNote);
 
 
