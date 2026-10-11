@@ -14,6 +14,70 @@ document.querySelectorAll('.discord-copy,[data-contact="Discord"]').forEach(butt
 
 document.getElementById('year').textContent=new Date().getFullYear();
 const projectFilters=[...document.querySelectorAll('[data-filter]')];
+// These are local action counts, not unique visitors or confirmed app activity.
+const activityKey='portfolio-project-activity-v1';
+const trackedProjects=[
+ {id:'beach-club',card:document.querySelector('a.gallery-card[data-category="web"]'),action:'uses'},
+ {id:'sound-diary',card:document.querySelector('a.gallery-card[data-category="app"]'),action:'downloads'},
+ {id:'evaluation-studio',card:document.querySelector('.evaluation-card'),action:'uses'}
+];
+let projectActivity={};
+function readActivity(){
+ try{
+  const raw=localStorage.getItem(activityKey);
+  if(!raw)return {};
+  const saved=JSON.parse(raw);
+  const clean={};
+  trackedProjects.forEach(({id})=>{
+   clean[id]={};
+   ['interactions','downloads','uses'].forEach(metric=>{
+    const value=saved?.[id]?.[metric];
+    clean[id][metric]=Number.isSafeInteger(value)&&value>=0?value:0;
+   });
+  });
+  return clean;
+ }catch{return {};}
+}
+projectActivity=readActivity();
+const activityNumber=new Intl.NumberFormat('en');
+function renderActivity(){
+ trackedProjects.forEach(({id,card})=>card.querySelectorAll('[data-metric]').forEach(counter=>{
+  counter.textContent=activityNumber.format(projectActivity[id]?.[counter.dataset.metric]||0);
+ }));
+}
+trackedProjects.forEach(({id,card,action})=>{
+ const stats=document.createElement('dl');
+ stats.className='project-activity';
+ stats.setAttribute('aria-label','Project activity in this browser');
+ [['interactions','Interactions','Project card clicks'],[action,action==='downloads'?'Download clicks':'Uses (opens)',action==='downloads'?'APK download clicks; completion is not tracked':'Live project opens; activity on the other site is not tracked']].forEach(([metric,label,description])=>{
+  const item=document.createElement('div');
+  item.title=description;
+  const name=document.createElement('dt');name.textContent=label;
+  const count=document.createElement('dd');count.dataset.metric=metric;count.textContent='0';
+  item.append(name,count);stats.append(item);
+ });
+ card.querySelector('h3').after(stats);
+ const record=event=>{
+  if(event.type==='auxclick'&&event.button!==1)return;
+  const saved=readActivity();
+  const current=saved[id]||projectActivity[id]||{interactions:0,downloads:0,uses:0};
+  current.interactions=Math.min(Number.MAX_SAFE_INTEGER,current.interactions+1);
+  if(card.matches('a')||event.target.closest('.evaluation-live'))current[action]=Math.min(Number.MAX_SAFE_INTEGER,current[action]+1);
+  projectActivity={...projectActivity,...saved,[id]:current};
+  try{localStorage.setItem(activityKey,JSON.stringify(projectActivity));}catch{}
+  renderActivity();
+ };
+ card.addEventListener('click',record);
+ card.addEventListener('auxclick',record);
+});
+renderActivity();
+window.addEventListener('storage',event=>{
+ if(event.key===activityKey||event.key===null){projectActivity=readActivity();renderActivity();}
+});
+const activityNote=document.createElement('p');
+activityNote.className='activity-note';
+activityNote.textContent='Activity in this browser · Uses count live-project opens. Downloads count clicks.';
+document.querySelector('.portfolio-gallery').after(activityNote);
 projectFilters.forEach(button=>button.addEventListener('click',()=>{const category=button.dataset.filter;projectFilters.forEach(filter=>filter.setAttribute('aria-pressed',String(filter===button)));let shown=0;document.querySelectorAll('.gallery-card[data-category]').forEach(card=>{const visible=category==='all'||card.dataset.category===category;card.hidden=!visible;if(visible)shown++;});document.getElementById('portfolio-empty').hidden=shown>0;}));
 
 

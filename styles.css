@@ -48,4 +48,9 @@ footer{text-align:center;font-size:11px;line-height:1.7;border-top:1px solid var
 .evaluation-credits dd{margin:0;overflow-wrap:anywhere}
 .evaluation-live{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;max-width:100%;text-align:center;font-size:12px;background:var(--surface)}
 .gallery-card[hidden]{display:none}
+.project-activity{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px;padding-top:10px;border-top:1px solid var(--line)}
+.project-activity>div{flex:1;min-width:90px;padding:8px 10px;border-radius:8px;background:var(--surface)}
+.project-activity dt{font-size:10px;line-height:1.5;color:var(--muted)}
+.project-activity dd{margin:3px 0 0;font-size:18px;font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--ink);overflow-wrap:anywhere}
+.activity-note{font-size:10px;line-height:1.7;color:var(--muted);margin:16px 0 0}
 @media(max-width:600px){.portfolio-gallery{grid-template-columns:minmax(0,1fr)}}
