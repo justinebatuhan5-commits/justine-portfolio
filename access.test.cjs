@@ -21,5 +21,5 @@ test('preview serves approval interface but denies former public APK route',asyn
 });
 test('public configuration uses a publishable key and no unprotected project link',()=>{
  const config=fs.readFileSync('access-config.js','utf8');
- assert(config.includes("publicKey:'sb_publishable_"));assert(!config.includes('sb_secret_'));assert(config.includes("evaluationUrl:''"));
+ assert(config.includes("publicKey:'sb_publishable_"));assert(!config.includes('sb_secret_'));assert(config.includes("evaluationUrl:'https://instructor-evaluation-helper.cozy-wood-7455.chatgpt.site'"));
 });
