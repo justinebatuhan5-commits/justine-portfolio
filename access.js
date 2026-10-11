@@ -15,7 +15,7 @@
  const submit=document.getElementById('access-submit');
  const refresh=document.getElementById('access-refresh');
  const signout=document.getElementById('access-signout');
- let session=null,owner=false,busy=false;
+ let session=null,owner=false,busy=false,mode='request';
  const names={'sound-diary':'Sound Diary','evaluation-studio':'Evaluation Studio'};
  function message(text){notice.textContent=text;}
  function state(){
@@ -23,10 +23,11 @@
   code.disabled=Boolean(session)||busy||!ready;
   sendCode.disabled=Boolean(session)||busy||!ready;
   verify.disabled=Boolean(session)||busy||!ready;
-  submit.disabled=!session||busy||owner;
-  refresh.disabled=!session||busy;
+  submit.disabled=!session||busy||owner||mode==='manage';
+  refresh.disabled=!session||busy||(mode==='manage'&&!owner);
+  refresh.textContent=mode==='manage'?'Refresh requests':'Check status';
   signout.hidden=!session;signout.disabled=busy;
-  details.hidden=owner;
+  details.hidden=mode==='manage'||!session||owner;
  }
  async function api(path,options={}){
   let response;
@@ -49,11 +50,13 @@
   try{await action();}catch(error){message(error.message);}finally{busy=false;state();}
  }
  function open(project){
+  mode=project?'request':'manage';
   projectField.value=project||'sound-diary';results.replaceChildren();
-  document.getElementById('access-title').textContent=project?'Request project access':'Manage project access';
-  message(ready?'Verify your email, then send your request. Justine reviews each request personally.':'Access requests are not available yet. Please contact Justine by email.');
+  document.getElementById('access-title').textContent=project?'Request project access':'Admin · Manage access';
+  document.getElementById('access-intro').textContent=project?'Verify your email to request this project and check your approval status. Justine reviews requests personally.':'Owner sign-in. Review visitor requests, approve access for seven days, or decline and revoke access.';
+  message(ready?(mode==='manage'?'Sign in with your registered owner email to manage requests.':'Verify your email to continue with your request.'):'Access requests are not available yet. Please contact Justine by email.');
   state();dialog.showModal();
-  if(session)task(loadRequests);
+  if(session){email.value=session.user.email;task(loadRequests);}
  }
  document.querySelectorAll('[data-request-project]').forEach(button=>button.addEventListener('click',()=>open(button.dataset.requestProject)));
  document.getElementById('access-manage').addEventListener('click',()=>open(null));
@@ -69,15 +72,15 @@
   if(!code.checkValidity()){code.reportValidity();return;}
   session=await api('/auth/v1/verify',{method:'POST',body:JSON.stringify({email:email.value.trim(),token:code.value.trim(),type:'email'})});
   if(!session.access_token){session=null;throw new Error('Email verification failed. Request another code.');}
-  code.value='';owner=await api('/rest/v1/rpc/portfolio_is_owner',{method:'POST',body:'{}'});
-  message(owner?'Signed in as owner. Review and decide on requests below.':'Email verified. You can request access or check your existing request.');
+  code.value='';owner=(await api('/rest/v1/rpc/portfolio_is_owner',{method:'POST',body:'{}'}))===true;
+  message(mode==='manage'?(owner?'Owner verified. Review requests below.':'This account is not an administrator. Sign out and use your owner email, or use Request access on a project.'):(owner?'You are signed in as the owner. Use Manage access to review visitor requests.':'Email verified. Send your request or check your existing approval.'));
   await loadRequests();
  }));
  signout.addEventListener('click',()=>task(async()=>{
   try{await api('/auth/v1/logout',{method:'POST'});}finally{session=null;owner=false;code.value='';results.replaceChildren();message('Signed out.');}
  }));
  form.addEventListener('submit',event=>{
-  event.preventDefault();if(!session||owner)return;
+  event.preventDefault();if(!session||owner||mode!=='request')return;
   task(async()=>{
    const values={name:document.getElementById('access-name').value,email:session.user.email,message:document.getElementById('access-reason').value};
    const checked=FormValidation.validate(values);
@@ -90,7 +93,12 @@
  refresh.addEventListener('click',()=>task(loadRequests));
  async function loadRequests(){
   results.replaceChildren();
-  const rows=await api('/rest/v1/portfolio_access_requests?select=id,project,name,email,reason,status,expires_at&order=created_at.desc');
+  if(mode==='manage'){
+   owner=(await api('/rest/v1/rpc/portfolio_is_owner',{method:'POST',body:'{}'}))===true;
+   if(!owner){message('This account is not an administrator. Sign out and use your owner email, or use Request access on a project.');return;}
+  }
+  const visitorFilter=mode==='request'?'&user_id=eq.'+encodeURIComponent(session.user.id)+'&project=eq.'+encodeURIComponent(projectField.value):'';
+  const rows=await api('/rest/v1/portfolio_access_requests?select=id,project,name,email,reason,status,expires_at&order=created_at.desc'+visitorFilter);
   if(!rows.length){const p=document.createElement('p');p.textContent='No requests yet.';results.append(p);return;}
   rows.forEach(row=>{
    const item=document.createElement('article');item.className='access-request';
@@ -99,7 +107,7 @@
    const expired=row.expires_at&&Date.parse(row.expires_at)<=Date.now();
    status.textContent='Status: '+(row.status==='approved'&&expired?'expired':row.status)+(row.expires_at?' · Access expires '+new Date(row.expires_at).toLocaleString():'');
    item.append(title,status);
-   if(owner){
+   if(mode==='manage'&&owner){
     const info=document.createElement('p');info.textContent=row.name+' · '+row.email;
     const reason=document.createElement('p');reason.textContent=row.reason;item.append(info,reason);
     [['approved','Approve for 7 days'],['declined','Decline'],['revoked','Revoke']].forEach(([decision,label])=>{
