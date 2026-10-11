@@ -23,3 +23,5 @@
 footer{text-align:center;font-size:11px;line-height:1.7;border-top:1px solid var(--line);padding-top:18px;margin-top:24px;letter-spacing:.1px}
 .avatar{background-color:#e9edf1;background-image:url("assets/justine-profile.png");background-size:135% auto;background-position:center 8%;background-repeat:no-repeat}html[data-theme=dark] .avatar{background-color:#414a58}
 .field-error{display:block;color:#b53021;font-size:11px;line-height:1.6;margin-top:5px}.field-error:empty{display:none}.message-panel [aria-invalid=true]{border-bottom-color:#b53021;box-shadow:0 1px 0 #b53021}#form-status{font-size:11px;line-height:1.7;color:var(--muted);margin:12px 0 0}#form-status:empty{display:none}html[data-theme=dark] .field-error{color:#ffaca2}
+
+.gallery-card .sound-diary-cover{background:linear-gradient(135deg,#302b63,#6152a0);color:#fff}.gallery-card .sound-diary-cover small{color:#fff}
