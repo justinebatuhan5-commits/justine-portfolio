@@ -14,13 +14,14 @@ document.querySelectorAll('.discord-copy,[data-contact="Discord"]').forEach(butt
 
 document.getElementById('year').textContent=new Date().getFullYear();
 const projectFilters=[...document.querySelectorAll('[data-filter]')];
+projectFilters.forEach(button=>button.addEventListener('click',()=>{const category=button.dataset.filter;projectFilters.forEach(filter=>filter.setAttribute('aria-pressed',String(filter===button)));let shown=0;document.querySelectorAll('.gallery-card[data-category]').forEach(card=>{const visible=category==='all'||card.dataset.category===category;card.hidden=!visible;if(visible)shown++;});document.getElementById('portfolio-empty').hidden=shown>0;}));
 // These are local action counts, not unique visitors or confirmed app activity.
 const activityKey='portfolio-project-activity-v1';
 const trackedProjects=[
  {id:'beach-club',card:document.querySelector('a.gallery-card[data-category="web"]'),action:'uses'},
  {id:'sound-diary',card:document.querySelector('a.gallery-card[data-category="app"]'),action:'downloads'},
  {id:'evaluation-studio',card:document.querySelector('.evaluation-card'),action:'uses'}
-];
+].filter(project=>project.card);
 let projectActivity={};
 function readActivity(){
  try{
@@ -78,7 +79,6 @@ const activityNote=document.createElement('p');
 activityNote.className='activity-note';
 activityNote.textContent='Activity in this browser · Uses count live-project opens. Downloads count clicks.';
 document.querySelector('.portfolio-gallery').after(activityNote);
-projectFilters.forEach(button=>button.addEventListener('click',()=>{const category=button.dataset.filter;projectFilters.forEach(filter=>filter.setAttribute('aria-pressed',String(filter===button)));let shown=0;document.querySelectorAll('.gallery-card[data-category]').forEach(card=>{const visible=category==='all'||card.dataset.category===category;card.hidden=!visible;if(visible)shown++;});document.getElementById('portfolio-empty').hidden=shown>0;}));
 
 
 const contactForm=document.getElementById('contact-form');
