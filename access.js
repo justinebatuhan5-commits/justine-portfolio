@@ -29,8 +29,16 @@
   details.hidden=owner;
  }
  async function api(path,options={}){
-  const response=await fetch(config.url+path,{...options,headers:{apikey:config.publicKey,...(session?{Authorization:'Bearer '+session.access_token}:{}),'Content-Type':'application/json',...options.headers}});
+  let response;
+  try{
+   response=await fetch(config.url+path,{...options,signal:AbortSignal.timeout(20000),headers:{apikey:config.publicKey,...(session?{Authorization:'Bearer '+session.access_token}:{}),'Content-Type':'application/json',...options.headers}});
+  }catch{throw new Error('Cannot reach the sign-in service. Check your connection and try again.');}
   if(!response.ok){
+   const error=await response.json().catch(()=>({}));
+   if(response.status===429)throw new Error('Too many code requests. Wait at least 60 seconds before trying again. Supabase may also have an hourly email limit.');
+   if(path==='/auth/v1/otp'&&response.status>=500)throw new Error('Supabase could not send the email. Check Authentication logs and your SMTP settings in Supabase.');
+   if(path==='/auth/v1/verify')throw new Error('The email code is invalid or expired. Request a new code and use the latest email.');
+   if(error.code==='23505')throw new Error('You already requested this project. Use Check status to see the decision.');
    if(response.status===401){session=null;owner=false;state();}
    throw new Error(response.status===401?'Your session expired. Verify your email again.':'The request could not be completed. Check your connection and try again.');
   }
@@ -51,9 +59,10 @@
  document.getElementById('access-manage').addEventListener('click',()=>open(null));
  document.getElementById('access-close').addEventListener('click',()=>dialog.close());
  sendCode.addEventListener('click',()=>task(async()=>{
-  if(!email.checkValidity()){email.reportValidity();return;}
+  if(!email.value.trim()||!email.checkValidity()){email.reportValidity();message('Enter a valid email address first.');return;}
+  message('Sending your sign-in code…');
   await api('/auth/v1/otp',{method:'POST',body:JSON.stringify({email:email.value.trim(),create_user:true})});
-  message('Check your email for the sign-in code. Enter it below.');code.focus();
+  message('Supabase accepted the email request. Check your inbox and Spam folder. Wait 60 seconds before requesting another code.');
  }));
  verify.addEventListener('click',()=>task(async()=>{
   if(!email.checkValidity()){email.reportValidity();return;}
