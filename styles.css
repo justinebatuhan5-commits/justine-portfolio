@@ -25,3 +25,27 @@ footer{text-align:center;font-size:11px;line-height:1.7;border-top:1px solid var
 .field-error{display:block;color:#b53021;font-size:11px;line-height:1.6;margin-top:5px}.field-error:empty{display:none}.message-panel [aria-invalid=true]{border-bottom-color:#b53021;box-shadow:0 1px 0 #b53021}#form-status{font-size:11px;line-height:1.7;color:var(--muted);margin:12px 0 0}#form-status:empty{display:none}html[data-theme=dark] .field-error{color:#ffaca2}
 
 .gallery-card .sound-diary-cover{background:linear-gradient(135deg,#302b63,#6152a0);color:#fff}.gallery-card .sound-diary-cover small{color:#fff}
+
+/* Evaluation Studio follows the gallery's illustrated preview and peach card. */
+.evaluation-card{min-width:0}
+.gallery-card .evaluation-cover{background:linear-gradient(135deg,#fff5e5,#f4c88d);color:#654326}
+.gallery-card .evaluation-cover strong{font-family:'DM Sans',Arial,sans-serif;font-weight:600;font-size:28px;line-height:1.05;letter-spacing:-.8px;margin-top:12px}
+.evaluation-rating{display:flex;gap:5px;margin-top:12px}
+.evaluation-rating span{display:grid;place-items:center;width:22px;height:22px;border-radius:5px;background:#fff9ef;color:#654326;font-size:10px;font-weight:600}
+.evaluation-rating span:last-child{background:#654326;color:#fff9ef}
+.gallery-card .evaluation-cover small{left:auto;right:12px;bottom:10px;color:#654326;font-size:8px}
+.evaluation-card .gallery-caption{padding:10px 6px 6px}
+.evaluation-card .gallery-caption h3{font-weight:600}
+.evaluation-description,.evaluation-features,.evaluation-scope{font-size:12px;line-height:1.7;margin:12px 0;color:var(--ink)}
+.evaluation-features{padding-left:17px}
+.evaluation-features li+li{margin-top:5px}
+.evaluation-scope{font-size:11px}
+.evaluation-tech{display:flex;flex-wrap:wrap;gap:6px}
+.evaluation-tech span{font-size:10px;line-height:1.5;padding:5px 7px;background:var(--surface);color:var(--ink);border-radius:6px}
+.evaluation-credits{font-size:11px;line-height:1.6;margin:15px 0}
+.evaluation-credits div+div{margin-top:7px}
+.evaluation-credits dt{font-size:10px;color:var(--ink);font-weight:600}
+.evaluation-credits dd{margin:0;overflow-wrap:anywhere}
+.evaluation-live{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;max-width:100%;text-align:center;font-size:12px;background:var(--surface)}
+.gallery-card[hidden]{display:none}
+@media(max-width:600px){.portfolio-gallery{grid-template-columns:minmax(0,1fr)}}
