@@ -20,7 +20,7 @@ const activityKey='portfolio-project-activity-v2';
 const activityCooldown=24*60*60*1000;
 const trackedProjects=[
  {id:'beach-club',card:document.querySelector('a.gallery-card[data-category="web"]'),action:'uses'},
- {id:'sound-diary',card:document.querySelector('a.gallery-card[data-category="app"]'),action:'downloads'},
+ {id:'sound-diary',card:document.querySelector('.gallery-card[data-category="app"]'),action:'downloads'},
  {id:'evaluation-studio',card:document.querySelector('.evaluation-card'),action:'uses'}
 ].filter(project=>project.card);
 let projectActivity={};
@@ -73,13 +73,16 @@ trackedProjects.forEach(({id,card,action})=>{
    current[metric+'At']=now;
   };
   countOnce('interactions');
-  if(card.matches('a')||event.target.closest('.evaluation-live'))countOnce(action);
+  if(card.matches('a')||event.type==='portfolio-approved-action')countOnce(action);
   projectActivity={...projectActivity,...saved,[id]:current};
   try{localStorage.setItem(activityKey,JSON.stringify(projectActivity));}catch{}
   renderActivity();
  };
  card.addEventListener('click',record);
  card.addEventListener('auxclick',record);
+ document.addEventListener('portfolio-approved-action',event=>{
+  if(event.detail.project===id)record(event);
+ });
 });
 renderActivity();
 window.addEventListener('storage',event=>{
