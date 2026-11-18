@@ -26,7 +26,7 @@ Contact fields validate names, email format, message length, and invalid control
 
 The local preview server serves only an explicit public-file list, rejects other HTTP methods and foreign Host headers, checks resolved file paths, and sets CSP, nosniff, frame protection, referrer, and permissions headers. These HTTP headers must also be configured on the hosting provider when deploying static files; uploading files alone does not apply them. Use HTTPS on the deployed host.
 
-Deploy `validation.js` alongside `index.html`, `styles.css`, `script.js`, and the assets folder. Exclude server files, tests, screenshots, and this README from the public deployment.
+Deploy `validation.js` and `qrcode.js` alongside `index.html`, `styles.css`, `script.js`, `access.js`, `access-config.js`, and the assets folder. Exclude server files, tests, screenshots, and this README from the public deployment.
 
 Run the security regression checks with `node --test security.test.cjs`.
 
@@ -36,4 +36,10 @@ Project cards display interactions and either download clicks or uses (live-proj
 
 ## Android app download
 
-Sound Diary is listed under Work → App Development. Its download file is `assets/downloads/Sound-Diary.apk`; include it when deploying the assets folder. Replace this file to update the app download.
+Sound Diary is listed under Work → App Development and uses the `Request access` flow (`SUPABASE-SETUP.md`).
+
+## Public app downloads & QR codes
+
+GovGuide Ph is listed under Work → App Development for direct public download with an auto-generated QR code (`qrcode.js`). Place your APK file at `assets/downloads/GovGuide-Ph.apk` and include it when deploying the `assets` folder.
+
+To add more downloadable apps later, duplicate a `[data-app-qr]` card in `index.html`, set its `data-project-id`, `data-app-name`, `data-download-path`, and `data-download-filename` attributes, and add the file to `server.cjs` for local preview. When hosted online, each QR code automatically encodes your live site URL for that file.

@@ -6,11 +6,18 @@ const {createServer}=require('./server.cjs');
 test('preview serves approval interface but denies former public APK route',async()=>{
  const server=createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const port=server.address().port;
- const get=path=>new Promise((resolve,reject)=>http.get({hostname:'127.0.0.1',port,path},res=>{let body='';res.on('data',x=>body+=x);res.on('end',()=>resolve({status:res.statusCode,body}));}).on('error',reject));
+ const get=path=>new Promise((resolve,reject)=>http.get({hostname:'127.0.0.1',port,path},res=>{let body='';res.on('data',x=>body+=x);res.on('end',()=>resolve({status:res.statusCode,headers:res.headers,body}));}).on('error',reject));
+ const head=path=>new Promise((resolve,reject)=>http.request({hostname:'127.0.0.1',port,path,method:'HEAD'},res=>{res.resume();res.on('end',()=>resolve({status:res.statusCode,headers:res.headers}));}).on('error',reject).end());
  try{
   assert.equal((await get('/access.js')).status,200);
   assert.equal((await get('/access-config.js')).status,200);
+  assert.equal((await get('/qrcode.js')).status,200);
   assert.equal((await get('/assets/downloads/Sound-Diary.apk')).status,404);
+  const apkHead=await head('/assets/downloads/GovGuide-Ph.apk');
+  assert.equal(apkHead.status,200);
+  assert.equal(apkHead.headers['content-type'],'application/vnd.android.package-archive');
+  assert.equal(apkHead.headers['content-disposition'],'attachment; filename="GovGuide-Ph.apk"');
+  assert.equal(Number(apkHead.headers['content-length']),fs.statSync('assets/downloads/GovGuide-Ph.apk').size);
   const home=await get('/');assert.equal(home.status,200);
   assert(!home.body.includes('href="assets/downloads/Sound-Diary.apk"'));
   assert(!home.body.includes('href="https://instructor-evaluation-helper'));

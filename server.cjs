@@ -8,6 +8,8 @@ files.set('/assets/favicon.svg','assets/favicon.svg');
 files.set('/assets/favicon.png','assets/favicon.png');
 files.set('/access.js','access.js');
 files.set('/access-config.js','access-config.js');
+files.set('/qrcode.js','qrcode.js');
+files.set('/assets/downloads/GovGuide-Ph.apk','assets/downloads/GovGuide-Ph.apk');
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.apk':'application/vnd.android.package-archive'};
 const securityHeaders={
  'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self'; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action mailto:",
@@ -27,7 +29,7 @@ function createServer(){return http.createServer(async(request,response)=>{
  try{
   const resolved=await fs.realpath(path.join(root,relative));
   if(!resolved.startsWith(root+path.sep)){fail(403,'Forbidden');return;}
-  if(path.extname(resolved)==='.apk')response.setHeader('Content-Disposition','attachment; filename="Sound-Diary.apk"');
+  if(path.extname(resolved)==='.apk'){const safeName=path.basename(resolved).replace(/[^A-Za-z0-9._-]/g,'_');response.setHeader('Content-Disposition',`attachment; filename="${safeName}"`);}
   const data=await fs.readFile(resolved);response.writeHead(200,{'Content-Type':mime[path.extname(resolved)],'Content-Length':data.length});response.end(request.method==='HEAD'?undefined:data);
  }catch{fail(404,'Not found');}
 });}

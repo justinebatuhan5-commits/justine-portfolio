@@ -10,7 +10,8 @@ const pageTabs={about:'about-tab',resume:'resume-tab',work:'portfolio-tab',portf
 if(pageTabs[location.hash.slice(1)])selectTab(document.getElementById(pageTabs[location.hash.slice(1)]));
 document.querySelector('.wordmark').addEventListener('click',()=>selectTab(document.getElementById('about-tab')));
 const status=document.getElementById('copy-status');let statusTimer;
-document.querySelectorAll('.discord-copy,[data-contact="Discord"]').forEach(button=>button.addEventListener('click',async()=>{clearTimeout(statusTimer);try{await navigator.clipboard.writeText('justinebatuhan');status.textContent='Discord username copied: justinebatuhan';}catch{status.textContent='Discord username: justinebatuhan';}statusTimer=setTimeout(()=>status.textContent='',5000);}));
+function showToast(text){clearTimeout(statusTimer);status.textContent=text;statusTimer=setTimeout(()=>status.textContent='',5000);}
+document.querySelectorAll('.discord-copy,[data-contact="Discord"]').forEach(button=>button.addEventListener('click',async()=>{try{await navigator.clipboard.writeText('justinebatuhan');showToast('Discord username copied: justinebatuhan');}catch{showToast('Discord username: justinebatuhan');}}));
 
 document.getElementById('year').textContent=new Date().getFullYear();
 const projectFilters=[...document.querySelectorAll('[data-filter]')];
@@ -20,8 +21,13 @@ const activityKey='portfolio-project-activity-v2';
 const activityCooldown=24*60*60*1000;
 const trackedProjects=[
  {id:'beach-club',card:document.querySelector('a.gallery-card[data-category="web"]'),action:'uses'},
- {id:'sound-diary',card:document.querySelector('.gallery-card[data-category="app"]'),action:'downloads'},
- {id:'evaluation-studio',card:document.querySelector('.evaluation-card'),action:'uses'}
+ {id:'sound-diary',card:document.querySelector('.sound-diary-card'),action:'downloads'},
+ {id:'evaluation-studio',card:document.querySelector('.evaluation-card'),action:'uses'},
+ ...[...document.querySelectorAll('.gallery-card[data-project-id]')].map(card=>({
+  id:card.dataset.projectId,
+  card,
+  action:card.dataset.projectAction==='uses'?'uses':'downloads'
+ }))
 ].filter(project=>project.card);
 let projectActivity={};
 function readActivity(){
@@ -73,7 +79,7 @@ trackedProjects.forEach(({id,card,action})=>{
    current[metric+'At']=now;
   };
   countOnce('interactions');
-  if(card.matches('a')||event.type==='portfolio-approved-action')countOnce(action);
+  if(card.matches('a')||event.target?.closest?.('[data-app-download]')||event.type==='portfolio-approved-action')countOnce(action);
   projectActivity={...projectActivity,...saved,[id]:current};
   try{localStorage.setItem(activityKey,JSON.stringify(projectActivity));}catch{}
   renderActivity();
@@ -92,6 +98,121 @@ const activityNote=document.createElement('p');
 activityNote.className='activity-note';
 activityNote.textContent='Activity in this browser · Each action counts once per 24 hours. Uses count project opens; downloads count clicks.';
 document.querySelector('.portfolio-gallery').after(activityNote);
+
+function resolveAppDownloadUrl(rawPath){
+ if(!rawPath)return null;
+ try{
+  const parsed=new URL(rawPath,window.location.href);
+  if(!['http:','https:','file:'].includes(parsed.protocol))return null;
+  return parsed.href;
+ }catch{return null;}
+}
+function isLocalPreviewUrl(){
+ return location.protocol==='file:'||location.hostname==='127.0.0.1'||location.hostname==='localhost';
+}
+(()=>{
+ if(typeof PortfolioQRCode==='undefined')return;
+ const qrDialog=document.getElementById('qr-dialog');
+ const qrTitle=document.getElementById('qr-dialog-title');
+ const qrDesc=document.getElementById('qr-dialog-desc');
+ const qrStage=document.getElementById('qr-dialog-stage');
+ const qrUrlEl=document.getElementById('qr-dialog-url');
+ const qrNote=document.getElementById('qr-dialog-note');
+ const qrDownload=document.getElementById('qr-dialog-download');
+ const qrCopy=document.getElementById('qr-dialog-copy');
+ const qrSave=document.getElementById('qr-dialog-save');
+ const qrClose=document.getElementById('qr-dialog-close');
+ let activeApp=null;
+
+ function openQrDialog(app){
+  if(!qrDialog)return;
+  activeApp=app;
+  qrTitle.textContent=app.name;
+  qrDesc.textContent=app.subtitle||'Scan this QR code with your phone camera to download directly.';
+  qrStage.replaceChildren(PortfolioQRCode.createSvgElement(app.url,{margin:4,sizePx:240,label:`QR code to download ${app.name}`}));
+  qrUrlEl.textContent=app.url;
+  const notes=[];
+  if(app.missingFile)notes.push(`File pending: place your APK at ${app.rawPath} to enable downloads.`);
+  if(isLocalPreviewUrl())notes.push('Local preview link shown. Once hosted online, this QR code automatically uses your live site URL so phones can scan and download it.');
+  if(notes.length){
+   qrNote.textContent=notes.join(' ');
+   qrNote.hidden=false;
+  }else{
+   qrNote.hidden=true;
+  }
+  qrDownload.href=app.url;
+  qrDownload.setAttribute('download',app.filename);
+  qrDialog.showModal();
+ }
+
+ if(qrClose)qrClose.addEventListener('click',()=>qrDialog.close());
+ if(qrDialog)qrDialog.addEventListener('click',event=>{if(event.target===qrDialog)qrDialog.close();});
+ if(qrDownload)qrDownload.addEventListener('click',event=>{
+  if(!activeApp)return;
+  if(activeApp.missingFile){
+   event.preventDefault();
+   showToast(`Upload ${activeApp.rawPath} first so visitors can download ${activeApp.name}.`);
+   return;
+  }
+  if(activeApp.projectId)document.dispatchEvent(new CustomEvent('portfolio-approved-action',{detail:{project:activeApp.projectId}}));
+ });
+ if(qrCopy)qrCopy.addEventListener('click',async()=>{
+  if(!activeApp)return;
+  try{
+   await navigator.clipboard.writeText(activeApp.url);
+   showToast(`Download link copied: ${activeApp.url}`);
+  }catch{
+   showToast(`Download link: ${activeApp.url}`);
+  }
+ });
+ if(qrSave)qrSave.addEventListener('click',()=>{
+  if(!activeApp)return;
+  const svgMarkup=PortfolioQRCode.toSvgString(activeApp.url,{margin:4,sizePx:512,label:`QR code to download ${activeApp.name}`});
+  const blobUrl=URL.createObjectURL(new Blob([svgMarkup],{type:'image/svg+xml;charset=utf-8'}));
+  const link=document.createElement('a');
+  const slug=activeApp.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'app';
+  link.href=blobUrl;
+  link.download=`${slug}-qr.svg`;
+  link.click();
+  setTimeout(()=>URL.revokeObjectURL(blobUrl),60000);
+ });
+
+ document.querySelectorAll('[data-app-qr]').forEach(card=>{
+  const rawPath=card.dataset.downloadPath||card.querySelector('[data-app-download]')?.getAttribute('href')||'';
+  const url=resolveAppDownloadUrl(rawPath);
+  if(!url)return;
+  const app={
+   projectId:card.dataset.projectId||'',
+   name:card.dataset.appName||'App Download',
+   subtitle:card.dataset.appSubtitle||'',
+   rawPath,
+   url,
+   filename:card.dataset.downloadFilename||(rawPath.split('/').pop()||'app.apk'),
+   missingFile:false
+  };
+  const mount=card.querySelector('[data-qr-mount]');
+  if(mount){
+   mount.replaceChildren(PortfolioQRCode.createSvgElement(url,{margin:4,label:`QR code to download ${app.name}`}));
+  }
+  card.querySelectorAll('[data-qr-open]').forEach(btn=>btn.addEventListener('click',()=>openQrDialog(app)));
+  const downloadLink=card.querySelector('[data-app-download]');
+  if(downloadLink){
+   downloadLink.href=url;
+   downloadLink.setAttribute('download',app.filename);
+   downloadLink.addEventListener('click',event=>{
+    if(app.missingFile){
+     event.preventDefault();
+     showToast(`Upload ${app.rawPath} first so visitors can download ${app.name}.`);
+    }
+   });
+  }
+  if(location.protocol.startsWith('http')&&new URL(url).origin===location.origin){
+   fetch(url,{method:'HEAD'}).then(res=>{
+    if(res.status===404)app.missingFile=true;
+   }).catch(()=>{});
+  }
+ });
+})();
 
 
 const contactForm=document.getElementById('contact-form');
