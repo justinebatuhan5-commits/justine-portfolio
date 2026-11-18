@@ -263,11 +263,71 @@ test('portfolio wires GovGuide Ph QR download cleanly without breaking Sound Dia
  assert(js.includes('PortfolioQRCode.createSvgElement'));
 });
 
+test('shared Firebase counter reads totals and sends an atomic +1 only once per 24 hours',async()=>{
+ const js=fs.readFileSync('script.js','utf8');
+ const requests=[];let stored=null;let total=7;
+ const listeners=new Map();
+ const makeNode=()=>({style:{},dataset:{},hidden:false,children:[],className:'',textContent:'',content:'',setAttribute(){},getAttribute(){return '';},addEventListener(){},after(){},append(){},replaceChildren(){},matches:()=>false,hasAttribute:()=>false,querySelector(){return makeNode();},querySelectorAll(){return [];},classList:{remove(){},add(){}}});
+ const metrics=[];
+ const card=makeNode();
+ card.dataset.projectId='govguide-ph';card.dataset.projectAction='downloads';
+ card.hasAttribute=name=>name==='data-app-qr';
+ const counter=makeNode();counter.dataset.metric='downloads';metrics.push(counter);
+ card.querySelectorAll=sel=>sel==='[data-metric]'?metrics:[];
+ card.querySelector=sel=>sel==='h3'?{after(){}}:makeNode();
+ card.addEventListener=(type,fn)=>listeners.set(type,fn);
+ const doc={
+  documentElement:{dataset:{}},
+  getElementById:()=>makeNode(),
+  querySelector:sel=>sel==='.portfolio-gallery'?makeNode():makeNode(),
+  querySelectorAll:sel=>sel==='.gallery-card[data-project-id]'?[card]:[],
+  createElement:()=>makeNode(),
+  addEventListener(){}
+ };
+ const loc={pathname:'/',search:'',hash:'',protocol:'https:',hostname:'example.com',href:'https://example.com/'};
+ const fetchStub=async(url,options={})=>{
+  requests.push({url,method:options.method||'GET',body:options.body});
+  if(String(url).includes(':commit')){total+=1;return {ok:true,status:200,json:async()=>({})};}
+  return {ok:true,status:200,json:async()=>({fields:{count:{integerValue:String(total)}}})};
+ };
+ const context={
+  document:doc,location:loc,history:{replaceState(){}},
+  window:{location:loc,addEventListener(){},PortfolioFirebaseConfig:{projectId:'demo-portfolio',apiKey:'test-key'}},
+  localStorage:{getItem:()=>stored,setItem:(_k,v)=>{stored=v;}},
+  URLSearchParams,URL,Intl,Number,Date,JSON,Math,AbortSignal,encodeURIComponent,CustomEvent:function(){},setTimeout,clearTimeout,navigator:{},fetch:fetchStub
+ };
+ vm.runInNewContext(js,context);
+ await new Promise(r=>setTimeout(r,20));
+ assert.match(requests[0].url,/^https:\/\/firestore\.googleapis\.com\/v1\/projects\/demo-portfolio\/databases\/\(default\)\/documents\/downloads\/govguide-ph\?key=test-key$/);
+ assert.equal(counter.textContent,'7');
+ const click={type:'click',target:{closest:sel=>sel==='[data-app-download]'?{}:null}};
+ listeners.get('click')(click);
+ await new Promise(r=>setTimeout(r,20));
+ const commits=requests.filter(r=>r.url.includes(':commit'));
+ assert.equal(commits.length,1);
+ const body=JSON.parse(commits[0].body);
+ assert.equal(body.writes[0].transform.fieldTransforms[0].increment.integerValue,'1');
+ assert.equal(body.writes[0].transform.document,'projects/demo-portfolio/databases/(default)/documents/downloads/govguide-ph');
+ assert.equal(counter.textContent,'8');
+ listeners.get('click')(click);
+ await new Promise(r=>setTimeout(r,20));
+ assert.equal(requests.filter(r=>r.url.includes(':commit')).length,1);
+});
+
+test('Firebase config is public-only and rules restrict writes to a single +1',()=>{
+ const rules=fs.readFileSync('firestore.rules','utf8');
+ assert(rules.includes("allow list: if false"));
+ assert(rules.includes("allow delete: if false"));
+ assert(rules.includes('request.resource.data.count == resource.data.count + 1'));
+ const cfg=fs.readFileSync('firebase-config.js','utf8');
+ assert(!/private_key|service_account|sb_secret|AIza[0-9A-Za-z_-]{30,}.*private/i.test(cfg));
+});
+
 test('script.js strips fbclid and utm tracking parameters while preserving path, non-tracking params, and hash',()=>{
  const js=fs.readFileSync('script.js','utf8');
  const runWithLocation=(pathname,search,hash)=>{
   const calls=[];
-  const makeNode=()=>({style:{},dataset:{},setAttribute(){},getAttribute(){return '';},addEventListener(){},after(){},append(){},querySelector(){return makeNode();},querySelectorAll(){return [];},classList:{remove(){},add(){}},content:'',textContent:''});
+  const makeNode=()=>({style:{},dataset:{},setAttribute(){},getAttribute(){return '';},addEventListener(){},after(){},append(){},hasAttribute:()=>false,matches:()=>false,querySelector(){return makeNode();},querySelectorAll(){return [];},classList:{remove(){},add(){}},content:'',textContent:''});
   const doc={
    documentElement:{dataset:{}},
    getElementById:()=>makeNode(),

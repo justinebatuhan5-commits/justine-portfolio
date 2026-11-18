@@ -67,9 +67,32 @@ function readActivity(){
 }
 projectActivity=readActivity();
 const activityNumber=new Intl.NumberFormat('en');
+// Shared download totals (Firebase Firestore REST). Disabled until firebase-config.js is filled in.
+const sharedConfig=window.PortfolioFirebaseConfig||{};
+const sharedEnabled=/^[a-z0-9-]{4,}$/.test(sharedConfig.projectId||'')&&Boolean(sharedConfig.apiKey);
+const sharedCounts={};
+const sharedBase=sharedEnabled?`https://firestore.googleapis.com/v1/projects/${sharedConfig.projectId}/databases/(default)/documents`:'';
+async function loadSharedCount(id){
+ if(!sharedEnabled)return;
+ try{
+  const response=await fetch(`${sharedBase}/downloads/${encodeURIComponent(id)}?key=${encodeURIComponent(sharedConfig.apiKey)}`,{signal:AbortSignal.timeout(15000)});
+  if(response.status===404){sharedCounts[id]=0;}
+  else if(response.ok){const value=Number((await response.json())?.fields?.count?.integerValue);sharedCounts[id]=Number.isSafeInteger(value)&&value>=0?value:0;}
+  else return;
+  renderActivity();
+ }catch{}
+}
+async function incrementSharedCount(id){
+ if(!sharedEnabled)return;
+ try{
+  const response=await fetch(`${sharedBase}:commit?key=${encodeURIComponent(sharedConfig.apiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(15000),body:JSON.stringify({writes:[{transform:{document:`projects/${sharedConfig.projectId}/databases/(default)/documents/downloads/${id}`,fieldTransforms:[{fieldPath:'count',increment:{integerValue:'1'}}]}}]})});
+  if(response.ok){sharedCounts[id]=(sharedCounts[id]||0)+1;renderActivity();loadSharedCount(id);}
+ }catch{}
+}
 function renderActivity(){
  trackedProjects.forEach(({id,card})=>card.querySelectorAll('[data-metric]').forEach(counter=>{
-  counter.textContent=activityNumber.format(projectActivity[id]?.[counter.dataset.metric]||0);
+  const shared=counter.dataset.metric==='downloads'&&card.hasAttribute('data-app-qr')&&sharedEnabled&&Number.isSafeInteger(sharedCounts[id]);
+  counter.textContent=activityNumber.format(shared?sharedCounts[id]:(projectActivity[id]?.[counter.dataset.metric]||0));
  }));
 }
 trackedProjects.forEach(({id,card,action})=>{
@@ -91,12 +114,15 @@ trackedProjects.forEach(({id,card,action})=>{
   const now=Date.now();
   const countOnce=metric=>{
    const last=current[metric+'At'];
-   if(last&&now-last<activityCooldown)return;
+   if(last&&now-last<activityCooldown)return false;
    current[metric]=Math.min(Number.MAX_SAFE_INTEGER,current[metric]+1);
    current[metric+'At']=now;
+   return true;
   };
   countOnce('interactions');
-  if(card.matches('a')||event.target?.closest?.('[data-app-download]')||event.type==='portfolio-approved-action')countOnce(action);
+  if(card.matches('a')||event.target?.closest?.('[data-app-download]')||event.type==='portfolio-approved-action'){
+   if(countOnce(action)&&action==='downloads'&&card.hasAttribute('data-app-qr'))incrementSharedCount(id);
+  }
   projectActivity={...projectActivity,...saved,[id]:current};
   try{localStorage.setItem(activityKey,JSON.stringify(projectActivity));}catch{}
   renderActivity();
@@ -108,12 +134,13 @@ trackedProjects.forEach(({id,card,action})=>{
  });
 });
 renderActivity();
+trackedProjects.forEach(({id,card})=>{if(card.hasAttribute('data-app-qr'))loadSharedCount(id);});
 window.addEventListener('storage',event=>{
  if(event.key===activityKey||event.key===null){projectActivity=readActivity();renderActivity();}
 });
 const activityNote=document.createElement('p');
 activityNote.className='activity-note';
-activityNote.textContent='Activity in this browser · Each action counts once per 24 hours. Uses count project opens; downloads count clicks.';
+activityNote.textContent=sharedEnabled?'GovGuide Ph download total is shared across all visitors. Other counts are per browser. Each action counts once per 24 hours; downloads count clicks, not installs.':'Activity in this browser · Each action counts once per 24 hours. Uses count project opens; downloads count clicks.';
 document.querySelector('.portfolio-gallery').after(activityNote);
 
 function resolveAppDownloadUrl(rawPath){

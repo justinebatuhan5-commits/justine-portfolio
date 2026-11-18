@@ -26,7 +26,7 @@ Contact fields validate names, email format, message length, and invalid control
 
 The local preview server serves only an explicit public-file list, rejects other HTTP methods and foreign Host headers, checks resolved file paths, and sets CSP, nosniff, frame protection, referrer, and permissions headers. These HTTP headers must also be configured on the hosting provider when deploying static files; uploading files alone does not apply them. Use HTTPS on the deployed host.
 
-Deploy `validation.js` and `qrcode.js` alongside `index.html`, `styles.css`, `script.js`, `access.js`, `access-config.js`, and the assets folder. Exclude server files, tests, screenshots, and this README from the public deployment.
+Deploy `validation.js`, `qrcode.js`, and `firebase-config.js` alongside `index.html`, `styles.css`, `script.js`, `access.js`, `access-config.js`, and the assets folder. Exclude server files, tests, screenshots, Firebase config/rules files (`firebase.json`, `firestore.rules`, `firestore.indexes.json`), and this README from the public deployment.
 
 Run the security regression checks with `node --test security.test.cjs`.
 

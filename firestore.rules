@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Public download counters. Anyone can read one counter and add exactly 1; nothing else is allowed.
+    match /downloads/{appId} {
+      allow get: if appId in ['govguide-ph'];
+      allow list: if false;
+      allow create: if appId in ['govguide-ph']
+        && request.resource.data.keys().hasOnly(['count'])
+        && request.resource.data.count == 1;
+      allow update: if appId in ['govguide-ph']
+        && request.resource.data.keys().hasOnly(['count'])
+        && request.resource.data.count == resource.data.count + 1;
+      allow delete: if false;
+    }
+  }
+}
