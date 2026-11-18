@@ -1,4 +1,21 @@
 'use strict';
+(()=>{
+ if(!location.search||!window.history||typeof window.history.replaceState!=='function')return;
+ const params=new URLSearchParams(location.search);
+ const trackingKeys=new Set(['fbclid','gclid','gbraid','wbraid','dclid','msclkid','igshid','ttclid','twclid','li_fat_id','yclid','mc_cid','mc_eid']);
+ let changed=false;
+ for(const key of [...params.keys()]){
+  const lower=key.toLowerCase();
+  if(trackingKeys.has(lower)||lower.startsWith('utm_')){
+   params.delete(key);
+   changed=true;
+  }
+ }
+ if(!changed)return;
+ const query=params.toString();
+ const cleanUrl=location.pathname+(query?'?'+query:'')+location.hash;
+ try{window.history.replaceState(window.history.state,'',cleanUrl);}catch{}
+})();
 const themeButton=document.getElementById('theme-toggle');
 let theme='light';try{theme=localStorage.getItem('portfolio-theme')==='dark'?'dark':'light';}catch{}
 function applyTheme(){document.documentElement.dataset.theme=theme;themeButton.setAttribute('aria-label',`Switch to ${theme==='light'?'dark':'light'} theme`);document.querySelector('meta[name="theme-color"]').content=theme==='light'?'#ffffff':'#20242b';}

@@ -1,6 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+const vm=require('node:vm');
 const PortfolioQRCode=require('./qrcode.js');
 
 const VERSION_SPECS=[
@@ -260,4 +261,33 @@ test('portfolio wires GovGuide Ph QR download cleanly without breaking Sound Dia
  assert(html.includes('id="qr-dialog"'));
  assert(js.includes("querySelector('.sound-diary-card')"));
  assert(js.includes('PortfolioQRCode.createSvgElement'));
+});
+
+test('script.js strips fbclid and utm tracking parameters while preserving path, non-tracking params, and hash',()=>{
+ const js=fs.readFileSync('script.js','utf8');
+ const runWithLocation=(pathname,search,hash)=>{
+  const calls=[];
+  const makeNode=()=>({style:{},dataset:{},setAttribute(){},getAttribute(){return '';},addEventListener(){},after(){},append(){},querySelector(){return makeNode();},querySelectorAll(){return [];},classList:{remove(){},add(){}},content:'',textContent:''});
+  const doc={
+   documentElement:{dataset:{}},
+   getElementById:()=>makeNode(),
+   querySelector:()=>makeNode(),
+   querySelectorAll:()=>[],
+   createElement:()=>makeNode(),
+   addEventListener(){}
+  };
+  const loc={pathname,search,hash,protocol:'https:',hostname:'example.com',href:`https://example.com${pathname}${search}${hash}`};
+  const hist={state:null,replaceState(_s,_t,url){calls.push(url);}};
+  vm.runInNewContext(js,{
+   document:doc,
+   location:loc,
+   history:hist,
+   window:{location:loc,history:hist,addEventListener(){}},
+   URLSearchParams,URL,Intl,Number,Date,CustomEvent:function(){},setTimeout,clearTimeout,navigator:{},fetch:async()=>({status:200})
+  });
+  return calls;
+ };
+ assert.deepEqual(runWithLocation('/','?fbclid=IwY2xjawU4DOFIeHRuA2FIbQIxMABwZG9mBWJyaWQRMXo3Y3dlTVgxVFBTc1U3',''),['/']);
+ assert.deepEqual(runWithLocation('/justine-portfolio/','?fbclid=123&utm_source=facebook&tab=1','#work'),['/justine-portfolio/?tab=1#work']);
+ assert.deepEqual(runWithLocation('/justine-portfolio/','?tab=1','#work'),[]);
 });
