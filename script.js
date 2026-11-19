@@ -38,7 +38,6 @@ const activityKey='portfolio-project-activity-v2';
 const activityCooldown=24*60*60*1000;
 const trackedProjects=[
  {id:'beach-club',card:document.querySelector('a.gallery-card[data-category="web"]'),action:'uses'},
- {id:'sound-diary',card:document.querySelector('.sound-diary-card'),action:'downloads'},
  {id:'evaluation-studio',card:document.querySelector('.evaluation-card'),action:'uses'},
  ...[...document.querySelectorAll('.gallery-card[data-project-id]')].map(card=>({
   id:card.dataset.projectId,

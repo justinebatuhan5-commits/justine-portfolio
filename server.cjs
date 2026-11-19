@@ -11,6 +11,11 @@ files.set('/access-config.js','access-config.js');
 files.set('/qrcode.js','qrcode.js');
 files.set('/firebase-config.js','firebase-config.js');
 files.set('/assets/downloads/GovGuide-Ph.apk','assets/downloads/GovGuide-Ph.apk');
+files.set('/assets/downloads/BakeOrder.apk','assets/downloads/BakeOrder.apk');
+files.set('/assets/downloads/PhoneGuide.apk','assets/downloads/PhoneGuide.apk');
+files.set('/assets/downloads/MotoHub.apk','assets/downloads/MotoHub.apk');
+files.set('/assets/downloads/SeasonalEat.apk','assets/downloads/SeasonalEat.apk');
+files.set('/assets/downloads/Sound-Diary.apk','assets/downloads/Sound-Diary.apk');
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.apk':'application/vnd.android.package-archive'};
 const securityHeaders={
  'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self'; connect-src 'self' https://*.supabase.co https://firestore.googleapis.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action mailto:",

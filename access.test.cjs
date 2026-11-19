@@ -12,17 +12,17 @@ test('preview serves approval interface but denies former public APK route',asyn
   assert.equal((await get('/access.js')).status,200);
   assert.equal((await get('/access-config.js')).status,200);
   assert.equal((await get('/qrcode.js')).status,200);
-  assert.equal((await get('/assets/downloads/Sound-Diary.apk')).status,404);
+  assert.equal((await get('/assets/downloads/Sound-Diary.apk')).status,200);
   const apkHead=await head('/assets/downloads/GovGuide-Ph.apk');
   assert.equal(apkHead.status,200);
   assert.equal(apkHead.headers['content-type'],'application/vnd.android.package-archive');
   assert.equal(apkHead.headers['content-disposition'],'attachment; filename="GovGuide-Ph.apk"');
   assert.equal(Number(apkHead.headers['content-length']),fs.statSync('assets/downloads/GovGuide-Ph.apk').size);
   const home=await get('/');assert.equal(home.status,200);
-  assert(!home.body.includes('href="assets/downloads/Sound-Diary.apk"'));
+  assert(home.body.includes('href="assets/downloads/Sound-Diary.apk"'));
   assert(!home.body.includes('href="https://instructor-evaluation-helper'));
   assert(home.body.includes('data-request-project="evaluation-studio"'));
-  assert(home.body.includes('data-request-project="sound-diary"'));
+  assert(!home.body.includes('data-request-project="sound-diary"'));
   assert(home.body.includes('href="https://www.santafbeachclub.com/frontend/index"'));
  }finally{await new Promise(resolve=>server.close(resolve));}
 });

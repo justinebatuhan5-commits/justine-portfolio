@@ -259,7 +259,7 @@ test('portfolio wires GovGuide Ph QR download cleanly without breaking Sound Dia
  assert(html.includes('data-project-id="govguide-ph"'));
  assert(html.includes('href="assets/downloads/GovGuide-Ph.apk"'));
  assert(html.includes('id="qr-dialog"'));
- assert(js.includes("querySelector('.sound-diary-card')"));
+ assert(html.includes('data-project-id="sound-diary"'));
  assert(js.includes('PortfolioQRCode.createSvgElement'));
 });
 
